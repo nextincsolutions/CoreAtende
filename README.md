@@ -1,5 +1,7 @@
 # CoreAtende
 
+![CoreAtende](https://raw.githubusercontent.com/nextincsolutions/omnichannel/main/CoreAtente.png)
+
 Sistema de atendimento via WhatsApp construído em Laravel, integrado à **Evolution API** para consultar conversas, ler mensagens, responder clientes e distribuir atendimentos entre usuários.
 
 ## Objetivo
