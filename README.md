@@ -164,7 +164,6 @@ Para manter qualidade:
 3. Inclua testes quando alterar comportamento.
 4. Descreva impacto técnico no PR (o que muda, riscos, rollback).
 
-Se quiser, posso contribuir também com uma próxima etapa: separar a integração da Evolution API em uma camada de serviço + testes automatizados básicos para os endpoints principais.
 
 ## Licença
 
