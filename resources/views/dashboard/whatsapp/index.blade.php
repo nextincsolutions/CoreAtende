@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoreAtende</title>
+    <title>WhatsApp | Pinheiro Advogados</title>
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="{{ asset('assets/vendor/bootstrap/bootstrap.min.css') }}">
@@ -109,6 +109,11 @@
             color: #00a884;
             border-bottom-color: #00a884;
         }
+        .wpp-tabs .wpp-view-btn {
+            flex: 0 0 auto;
+            padding: 10px 14px;
+            border-left: 1px solid #2a3942;
+        }
 
         .wpp-contacts {
             flex: 1;
@@ -116,6 +121,107 @@
         }
         .wpp-contacts::-webkit-scrollbar { width: 4px; }
         .wpp-contacts::-webkit-scrollbar-thumb { background: #374045; border-radius: 4px; }
+
+        .wpp-kanban-board {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            min-height: 300px;
+            min-width: max-content;
+        }
+        .wpp-kanban-column {
+            width: 290px;
+            min-width: 290px;
+            background: #202c33;
+            border: 1px solid #2a3942;
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 170px);
+        }
+        .wpp-kanban-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 9px 10px;
+            border-bottom: 1px solid #2a3942;
+            background: #1f2c34;
+        }
+        .wpp-kanban-title {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            min-width: 0;
+            color: #e9edef;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .wpp-kanban-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .wpp-kanban-count {
+            color: #8696a0;
+            font-size: 11px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .wpp-kanban-body {
+            padding: 8px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+        .wpp-kanban-card {
+            background: #111b21;
+            border: 1px solid #2a3942;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: background .15s, border-color .15s;
+        }
+        .wpp-kanban-card:hover, .wpp-kanban-card.active {
+            background: #1d2b33;
+            border-color: #3c5965;
+        }
+        .wpp-kanban-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 7px;
+        }
+        .wpp-kanban-time { color: #8696a0; font-size: 11px; }
+        .wpp-kanban-empty {
+            color: #8696a0;
+            text-align: center;
+            font-size: 12px;
+            padding: 10px 6px;
+        }
+        #kanbanModal .modal-content {
+            background: #111b21;
+            color: #e9edef;
+            border: 1px solid #2a3942;
+        }
+        #kanbanModal .modal-header {
+            border-bottom: 1px solid #2a3942;
+            background: #1f2c34;
+        }
+        #kanbanModal .modal-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+        #wppKanbanModalBody {
+            padding: 12px;
+            overflow: auto;
+            background: #111b21;
+        }
+        #wppKanbanModalBody::-webkit-scrollbar { width: 7px; height: 7px; }
+        #wppKanbanModalBody::-webkit-scrollbar-thumb { background: #374045; border-radius: 6px; }
 
         .wpp-contact-item {
             display: flex;
@@ -606,6 +712,7 @@
         <div class="wpp-tabs">
             <button class="active" id="tabContatos" onclick="switchTab('contacts')">Contatos</button>
             <button id="tabGrupos" onclick="switchTab('groups')">Grupos</button>
+            <button id="tabKanban" class="wpp-view-btn" onclick="openKanbanModal()">Kanban</button>
         </div>
 
         <div class="wpp-contacts" id="wppContactList">
@@ -641,6 +748,28 @@
 
 <!-- ── Context Menu ── -->
 <div class="wpp-ctx-menu" id="wppCtxMenu" style="display:none;"></div>
+
+<!-- ── Kanban Modal ── -->
+<div class="modal fade" id="kanbanModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title"><i class="ti ti-layout-kanban me-2"></i>Kanban por etiquetas</h6>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <button type="button" class="btn btn-sm btn-outline-light" onclick="renderKanbanModal()">
+                        <i class="ti ti-refresh"></i>
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+            <div class="modal-body" id="wppKanbanModalBody">
+                <div class="wpp-loading">
+                    <div class="wpp-spinner"></div> Carregando…
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- ── Label Management Modal ── -->
 <div class="modal fade" id="labelModal" tabindex="-1" aria-hidden="true">
@@ -686,6 +815,13 @@
         users:       '{{ route('whatsapp.users') }}',
         assign:      '{{ route('whatsapp.assign') }}',
         assignments: '{{ route('whatsapp.assignments') }}',
+        labels:      '{{ route('whatsapp.labels') }}',
+        labelsBase:  '{{ url('/dashboard/whatsapp/labels') }}',
+        createLabel: '{{ route('whatsapp.labels.create') }}',
+        chatLabels:  '{{ route('whatsapp.chat-labels') }}',
+        toggleChatLabel: '{{ route('whatsapp.chat-labels.toggle') }}',
+        priorities:  '{{ route('whatsapp.priorities') }}',
+        setPriority: '{{ route('whatsapp.priorities.set') }}',
         media:       '{{ route('whatsapp.media') }}',
         contacts:    '{{ route('whatsapp.contacts') }}',
     };
@@ -705,15 +841,20 @@
     let chatAssignments = {}; // { chat_id: { user_id, user_name } }
     let activeUserFilter = null;
     let activePriorityFilter = null;
+    let labelsState = {};
+    let chatLabelsState = {};
+    let chatPrioritiesState = {};
+    let _kanbanModal = null;
 
+    //Permissões
+    const permission = "{{ Auth::user()->permission }}";
 
     document.addEventListener('DOMContentLoaded', () => {
         checkStatus();
-        loadContacts().finally(() => loadChats());
-        loadUsers();
-        loadAssignments();
-        renderLabelFilter();
-        renderPriorityFilter();
+        Promise.all([loadContacts(), loadUsers(), loadAssignments(), loadLabels(), loadChatLabels(), loadPriorities()])
+            .finally(() => loadChats());
+        const kanbanEl = document.getElementById('kanbanModal');
+        kanbanEl?.addEventListener('shown.bs.modal', renderKanbanModal);
         document.getElementById('wppSearch').addEventListener('input', e => {
             renderContactList(allChats, e.target.value.toLowerCase());
         });
@@ -785,11 +926,14 @@
             });
     }
 
-    function renderContactList(chats, query = '') {
-        const list = document.getElementById('wppContactList');
+    function getFilteredChats(chats, query = '') {
+        const normalizedQuery = String(query || '').toLowerCase();
         let filtered = chats.filter(c => currentTab === 'groups' ? c.isGroup : !c.isGroup);
-        if (query) {
-            filtered = filtered.filter(c => (c.name || c.id || '').toLowerCase().includes(query));
+        if (normalizedQuery) {
+            filtered = filtered.filter(c => {
+                const name = String(c.displayName || c.name || c.id || '').toLowerCase();
+                return name.includes(normalizedQuery);
+            });
         }
         if (activeLabel) {
             const cl = getChatLabels();
@@ -802,29 +946,124 @@
         if (activePriorityFilter) {
             filtered = filtered.filter(c => chatPriorities[c.id] === activePriorityFilter);
         }
-        filtered = sortChatsByPriority(filtered, chatPriorities);
+        return sortChatsByPriority(filtered, chatPriorities);
+    }
+
+    function buildExtraBadges(chat, labels, chatLbls, chatPriorities) {
+        const assignedLbls = (chatLbls[chat.id] || []).filter(id => labels[id]);
+        const badgesHtml = assignedLbls
+            .map(id => `<span class="wpp-label-badge" style="background:${labels[id].color};">${escHtml(labels[id].name)}</span>`)
+            .join('');
+        const assignment = chatAssignments[chat.id];
+        const priority = getPriorityConfig(chatPriorities[chat.id]);
+        const assignedBadge = assignment
+            ? `<span class="wpp-assigned-badge"><i class="ti ti-user" style="font-size:9px;"></i>${escHtml(assignment.user_name)}</span>`
+            : '';
+        const priorityBadge = priority
+            ? `<span class="wpp-priority-badge" style="background:${priority.color};"><i class="ti ti-flag-2" style="font-size:9px;"></i>${escHtml(priority.name)}</span>`
+            : '';
+        return badgesHtml || assignedBadge || priorityBadge
+            ? `<div class="wpp-contact-labels">${priorityBadge}${badgesHtml}${assignedBadge}</div>`
+            : '';
+    }
+
+    function buildKanbanBoardHtml(chats, labels, chatLbls, chatPriorities) {
+        const columns = [
+            { id: '__without__', name: 'Sem etiqueta', color: '#5f6b75' },
+            ...Object.entries(labels).map(([id, lbl]) => ({ id, name: lbl.name, color: lbl.color })),
+        ];
+        const grouped = columns.reduce((acc, col) => { acc[col.id] = []; return acc; }, {});
+        chats.forEach(chat => {
+            const assigned = (chatLbls[chat.id] || []).filter(id => labels[id]);
+            if (!assigned.length) {
+                grouped.__without__.push(chat);
+                return;
+            }
+            assigned.forEach(labelId => grouped[labelId].push(chat));
+        });
+
+        return `<div class="wpp-kanban-board">${
+            columns.map(col => {
+                const colChats = grouped[col.id] || [];
+                return `
+                <div class="wpp-kanban-column">
+                    <div class="wpp-kanban-head">
+                        <div class="wpp-kanban-title">
+                            <span class="wpp-kanban-dot" style="background:${col.color};"></span>
+                            <span>${escHtml(col.name)}</span>
+                        </div>
+                        <span class="wpp-kanban-count">${colChats.length}</span>
+                    </div>
+                    <div class="wpp-kanban-body">
+                        ${colChats.length
+                    ? colChats.map(chat => `
+                                <div class="wpp-kanban-card ${activeChatId === chat.id ? 'active' : ''}"
+                                     onclick="openChatFromKanban('${escHtml(chat.id)}', '${escHtml(chat.displayName || chat.name || chat.id)}', ${chat.isGroup ? 'true' : 'false'})"
+                                     oncontextmenu="showCtxMenu(event, '${escHtml(chat.id)}', '${escHtml(chat.displayName || chat.name || chat.id)}')">
+                                    <div class="wpp-contact-name">${escHtml(chat.displayName || chat.name || chat.id)}</div>
+                                    <div class="wpp-contact-preview">${escHtml(chat.lastMsg || '')}</div>
+                                    ${buildExtraBadges(chat, labels, chatLbls, chatPriorities)}
+                                    <div class="wpp-kanban-meta">
+                                        <span class="wpp-kanban-time">${formatTime(chat.timestamp)}</span>
+                                        ${chat.unread > 0 ? `<div class="wpp-unread-badge">${chat.unread}</div>` : ''}
+                                    </div>
+                                </div>
+                            `).join('')
+                    : '<div class="wpp-kanban-empty">Sem conversas</div>'
+                }
+                    </div>
+                </div>`;
+            }).join('')
+        }</div>`;
+    }
+
+    function isKanbanModalOpen() {
+        return !!document.getElementById('kanbanModal')?.classList.contains('show');
+    }
+
+    function openKanbanModal() {
+        if (!_kanbanModal) _kanbanModal = new bootstrap.Modal(document.getElementById('kanbanModal'));
+        renderKanbanModal();
+        _kanbanModal.show();
+    }
+
+    function closeKanbanModal() {
+        if (!_kanbanModal) return;
+        _kanbanModal.hide();
+    }
+
+    function openChatFromKanban(chatId, chatName, isGroup) {
+        closeKanbanModal();
+        openChat(chatId, chatName, isGroup);
+    }
+
+    function renderKanbanModal() {
+        const box = document.getElementById('wppKanbanModalBody');
+        if (!box) return;
+        const filtered = getFilteredChats(allChats, document.getElementById('wppSearch')?.value.toLowerCase() || '');
+        const labels = getLabels();
+        const chatLbls = getChatLabels();
+        const chatPriorities = getChatPriorities();
+        if (!filtered.length) {
+            box.innerHTML = '<div class="wpp-empty-list"><i class="ti ti-layout-kanban d-block mb-2" style="font-size:28px"></i>Nenhum resultado para o Kanban</div>';
+            return;
+        }
+        box.innerHTML = buildKanbanBoardHtml(filtered, labels, chatLbls, chatPriorities);
+    }
+
+    function renderContactList(chats, query = '') {
+        const list = document.getElementById('wppContactList');
+        const filtered = getFilteredChats(chats, query);
+        const chatPriorities = getChatPriorities();
         if (!filtered.length) {
             list.innerHTML = '<div class="wpp-empty-list"><i class="ti ti-user-off d-block mb-2" style="font-size:28px"></i>Nenhum resultado</div>';
+            if (isKanbanModalOpen()) renderKanbanModal();
             return;
         }
         const labels   = getLabels();
         const chatLbls = getChatLabels();
         list.innerHTML = filtered.map(chat => {
-            const assignedLbls = (chatLbls[chat.id] || []).filter(id => labels[id]);
-            const badgesHtml = assignedLbls
-                .map(id => `<span class="wpp-label-badge" style="background:${labels[id].color};">${escHtml(labels[id].name)}</span>`)
-                .join('');
-            const assignment = chatAssignments[chat.id];
-            const priority = getPriorityConfig(chatPriorities[chat.id]);
-            const assignedBadge = assignment
-                ? `<span class="wpp-assigned-badge"><i class="ti ti-user" style="font-size:9px;"></i>${escHtml(assignment.user_name)}</span>`
-                : '';
-            const priorityBadge = priority
-                ? `<span class="wpp-priority-badge" style="background:${priority.color};"><i class="ti ti-flag-2" style="font-size:9px;"></i>${escHtml(priority.name)}</span>`
-                : '';
-            const extraBadges = badgesHtml || assignedBadge || priorityBadge
-                ? `<div class="wpp-contact-labels">${priorityBadge}${badgesHtml}${assignedBadge}</div>`
-                : '';
+            const extraBadges = buildExtraBadges(chat, labels, chatLbls, chatPriorities);
             return `
             <div class="wpp-contact-item ${activeChatId === chat.id ? 'active' : ''}"
                  onclick="openChat('${escHtml(chat.id)}', '${escHtml(chat.displayName || chat.name || chat.id)}', ${chat.isGroup ? 'true' : 'false'})"
@@ -843,6 +1082,7 @@
                 </div>
             </div>`;
         }).join('');
+        if (isKanbanModalOpen()) renderKanbanModal();
     }
 
     function switchTab(tab) {
@@ -941,7 +1181,7 @@
             }
 
             const textHtml = msg.text
-                ? `<div>${escHtml(msg.text)}</div>`
+                ? `<div>${formatWppText(msg.text)}</div>`
                 : (!msg.thumbnail && !isAudio ? `<div class="wpp-media-label"><i class="ti ti-file"></i> ${escHtml(msg.type ?? 'mídia')}</div>` : '');
             html += `<div class="wpp-bubble ${cls}">${mediaHtml}${textHtml}<div class="wpp-bubble-time">${formatHour(msg.timestamp)}</div></div>`;
         });
@@ -1145,7 +1385,7 @@
                     const now = Math.floor(Date.now() / 1000);
                     box.insertAdjacentHTML('beforeend', `
                         <div class="wpp-bubble outgoing">
-                            ${escHtml(text)}
+                            ${formatWppText(text)}
                             <div class="wpp-bubble-time">${formatHour(now)}</div>
                         </div>`);
                     box.scrollTop = box.scrollHeight;
@@ -1161,9 +1401,6 @@
 
     // ─── Labels ───────────────────────────────────────────────
 
-    const LABELS_KEY    = 'wpp_labels';
-    const CHAT_LBLS_KEY = 'wpp_chat_labels';
-    const PRIORITY_KEY  = 'wpp_chat_priority';
     const LABEL_COLORS  = [
         '#25d366','#00a884','#34b7f1','#5b8def',
         '#e15f41','#f0b429','#e67e22','#8e44ad',
@@ -1180,12 +1417,9 @@
     let activeLabel   = null;
     let selectedColor = LABEL_COLORS[0];
 
-    function getLabels()       { return JSON.parse(localStorage.getItem(LABELS_KEY)    || '{}'); }
-    function saveLabels(l)     { localStorage.setItem(LABELS_KEY,    JSON.stringify(l)); }
-    function getChatLabels()   { return JSON.parse(localStorage.getItem(CHAT_LBLS_KEY) || '{}'); }
-    function saveChatLabels(l) { localStorage.setItem(CHAT_LBLS_KEY, JSON.stringify(l)); }
-    function getChatPriorities(){ return JSON.parse(localStorage.getItem(PRIORITY_KEY) || '{}'); }
-    function saveChatPriorities(p) { localStorage.setItem(PRIORITY_KEY, JSON.stringify(p)); }
+    function getLabels()       { return labelsState; }
+    function getChatLabels()   { return chatLabelsState; }
+    function getChatPriorities(){ return chatPrioritiesState; }
     function getPriorityConfig(priorityId) { return priorityId ? PRIORITY_BY_ID[priorityId] || null : null; }
     function sortChatsByPriority(chats, chatPriorities) {
         return [...chats].sort((a, b) => {
@@ -1197,38 +1431,44 @@
     }
 
     function createLabel(name, color) {
-        if (!name.trim()) return;
-        const labels  = getLabels();
-        const id      = 'lbl_' + Date.now();
-        labels[id]    = { name: name.trim(), color };
-        saveLabels(labels);
-        renderLabelFilter();
-        renderLblListInModal();
+        const clean = String(name || '').trim();
+        if (!clean) return Promise.resolve();
+
+        return fetch(ROUTES.createLabel, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+            body: JSON.stringify({ name: clean, color }),
+        })
+            .then(r => r.json())
+            .then(() => loadLabels());
     }
 
     function deleteLabel(id) {
-        const labels = getLabels();
-        delete labels[id];
-        saveLabels(labels);
-        const cl = getChatLabels();
-        Object.keys(cl).forEach(cid => { cl[cid] = (cl[cid] || []).filter(l => l !== id); });
-        saveChatLabels(cl);
-        if (activeLabel === id) activeLabel = null;
-        renderLabelFilter();
-        renderLblListInModal();
-        renderContactList(allChats, document.getElementById('wppSearch').value.toLowerCase());
+        return fetch(`${ROUTES.labelsBase}/${id}`, {
+            method: 'DELETE',
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+        })
+            .then(r => r.json())
+            .then(() => Promise.all([loadLabels(), loadChatLabels()]))
+            .then(() => {
+                if (activeLabel === String(id)) activeLabel = null;
+                renderLabelFilter();
+                renderContactList(allChats, document.getElementById('wppSearch').value.toLowerCase());
+            });
     }
 
     function toggleChatLabel(chatId, labelId) {
-        const cl = getChatLabels();
-        if (!cl[chatId]) cl[chatId] = [];
-        const idx = cl[chatId].indexOf(labelId);
-        if (idx >= 0) cl[chatId].splice(idx, 1);
-        else cl[chatId].push(labelId);
-        saveChatLabels(cl);
-        renderContactList(allChats, document.getElementById('wppSearch').value.toLowerCase());
-        // refresh open menu
-        if (ctxChatId === chatId) buildCtxMenu(chatId);
+        return fetch(ROUTES.toggleChatLabel, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+            body: JSON.stringify({ chat_id: chatId, label_id: parseInt(labelId, 10) }),
+        })
+            .then(r => r.json())
+            .then(() => loadChatLabels())
+            .then(() => {
+                renderContactList(allChats, document.getElementById('wppSearch').value.toLowerCase());
+                if (ctxChatId === chatId) buildCtxMenu(chatId);
+            });
     }
 
     function setLabelFilter(labelId) {
@@ -1238,13 +1478,18 @@
     }
 
     function setPriority(chatId, priorityId) {
-        const priorities = getChatPriorities();
-        if (priorityId) priorities[chatId] = priorityId;
-        else delete priorities[chatId];
-        saveChatPriorities(priorities);
-        renderContactList(allChats, document.getElementById('wppSearch').value.toLowerCase());
-        renderPriorityFilter();
-        if (ctxChatId === chatId) buildCtxMenu(chatId);
+        return fetch(ROUTES.setPriority, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+            body: JSON.stringify({ chat_id: chatId, priority: priorityId || null }),
+        })
+            .then(r => r.json())
+            .then(() => loadPriorities())
+            .then(() => {
+                renderContactList(allChats, document.getElementById('wppSearch').value.toLowerCase());
+                renderPriorityFilter();
+                if (ctxChatId === chatId) buildCtxMenu(chatId);
+            });
     }
 
     function setPriorityFilter(priorityId) {
@@ -1276,6 +1521,7 @@
     let _labelModal = null;
 
     function openLabelModal() {
+        loadLabels();
         renderLblListInModal();
         renderColorSwatches();
         if (!_labelModal) _labelModal = new bootstrap.Modal(document.getElementById('labelModal'));
@@ -1316,8 +1562,8 @@
 
     function submitNewLabel() {
         const inp = document.getElementById('newLabelName');
-        createLabel(inp.value, selectedColor);
-        inp.value = '';
+        const val = inp.value;
+        createLabel(val, selectedColor).then(() => { inp.value = ''; }).catch(() => {});
     }
 
     // ─── Context Menu ─────────────────────────────────────────
@@ -1326,7 +1572,7 @@
 
     function showCtxMenu(e, chatId, chatName) {
         e.preventDefault();
-        // if (permission === 'admin') return;
+        if (permission === 'user_inadimplencias') return;
         ctxChatId = chatId;
         buildCtxMenu(chatId);
         const menu = document.getElementById('wppCtxMenu');
@@ -1419,7 +1665,7 @@
     // ─── Assignments ──────────────────────────────────────────
 
     function loadUsers() {
-        fetch(ROUTES.users, { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF } })
+        return fetch(ROUTES.users, { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF } })
             .then(r => r.json())
             .then(data => {
                 systemUsers = Array.isArray(data) ? data : [];
@@ -1429,13 +1675,51 @@
     }
 
     function loadAssignments() {
-        fetch(ROUTES.assignments, { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF } })
+        return fetch(ROUTES.assignments, { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF } })
             .then(r => r.json())
             .then(data => {
                 chatAssignments = data || {};
                 renderContactList(allChats, document.getElementById('wppSearch').value.toLowerCase());
             })
             .catch(() => {});
+    }
+
+    function loadLabels() {
+        return fetch(ROUTES.labels, { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF } })
+            .then(r => r.json())
+            .then(data => {
+                const list = Array.isArray(data) ? data : [];
+                labelsState = list.reduce((acc, lbl) => {
+                    acc[String(lbl.id)] = { id: String(lbl.id), name: lbl.name, color: lbl.color };
+                    return acc;
+                }, {});
+                if (activeLabel && !labelsState[activeLabel]) activeLabel = null;
+                renderLabelFilter();
+                renderLblListInModal();
+                renderContactList(allChats, document.getElementById('wppSearch').value.toLowerCase());
+            })
+            .catch(() => { labelsState = {}; });
+    }
+
+    function loadChatLabels() {
+        return fetch(ROUTES.chatLabels, { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF } })
+            .then(r => r.json())
+            .then(data => {
+                chatLabelsState = data || {};
+                renderContactList(allChats, document.getElementById('wppSearch').value.toLowerCase());
+            })
+            .catch(() => { chatLabelsState = {}; });
+    }
+
+    function loadPriorities() {
+        return fetch(ROUTES.priorities, { headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF } })
+            .then(r => r.json())
+            .then(data => {
+                chatPrioritiesState = data || {};
+                renderPriorityFilter();
+                renderContactList(allChats, document.getElementById('wppSearch').value.toLowerCase());
+            })
+            .catch(() => { chatPrioritiesState = {}; });
     }
 
     function assignChat(chatId, userId) {
@@ -1477,6 +1761,14 @@
 
     function escHtml(str) {
         return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function formatWppText(str) {
+        let safe = escHtml(str);
+        safe = safe.replace(/\\\s*\\/g, '<br>');
+        safe = safe.replace(/\r?\n/g, '<br>');
+        safe = safe.replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>');
+        return safe;
     }
 
     function formatTime(ts) {

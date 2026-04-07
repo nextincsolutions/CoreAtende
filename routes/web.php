@@ -20,5 +20,12 @@ Route::group(['prefix' => 'whatsapp'], function () {
     Route::get('/users', [WhatsAppController::class, 'getUsers'])->name('whatsapp.users');
     Route::post('/assign', [WhatsAppController::class, 'assignChat'])->name('whatsapp.assign');
     Route::get('/assignments', [WhatsAppController::class, 'getAssignments'])->name('whatsapp.assignments');
+    Route::get('/labels', [WhatsAppController::class, 'getLabels'])->name('whatsapp.labels');
+    Route::post('/labels', [WhatsAppController::class, 'createLabel'])->name('whatsapp.labels.create');
+    Route::delete('/labels/{label}', [WhatsAppController::class, 'deleteLabel'])->name('whatsapp.labels.delete');
+    Route::get('/chat-labels', [WhatsAppController::class, 'getChatLabels'])->name('whatsapp.chat-labels');
+    Route::post('/chat-labels/toggle', [WhatsAppController::class, 'toggleChatLabel'])->name('whatsapp.chat-labels.toggle');
+    Route::get('/priorities', [WhatsAppController::class, 'getPriorities'])->name('whatsapp.priorities');
+    Route::post('/priorities', [WhatsAppController::class, 'setPriority'])->name('whatsapp.priorities.set');
     Route::post('/media', [WhatsAppController::class, 'fetchMedia'])->name('whatsapp.media');
 });

@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Models\WhatsAppChatLabel;
 use App\Models\User;
 use App\Models\WhatsAppChatAssignment;
+use App\Models\WhatsAppChatPriority;
+use App\Models\WhatsAppLabel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -353,6 +356,138 @@ class WhatsAppController extends Controller
             ->map(fn($a) => ['user_id' => $a->user_id, 'user_name' => $a->user->name ?? '']);
 
         return response()->json($assignments);
+    }
+
+    /**
+     * List all labels
+     */
+    public function getLabels()
+    {
+        $labels = WhatsAppLabel::query()
+            ->orderBy('name')
+            ->get(['id', 'name', 'color']);
+
+        return response()->json($labels);
+    }
+
+    /**
+     * Create label
+     */
+    public function createLabel(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:80',
+            'color' => ['required', 'string', 'max:20', 'regex:/^#[0-9a-fA-F]{6}$/'],
+        ]);
+
+        $label = WhatsAppLabel::create([
+            'name' => trim($data['name']),
+            'color' => $data['color'],
+            'created_by' => $request->user()?->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'label' => $label->only(['id', 'name', 'color']),
+        ]);
+    }
+
+    /**
+     * Delete label and its chat links
+     */
+    public function deleteLabel(WhatsAppLabel $label)
+    {
+        $label->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * List chat labels mapped by chat_id
+     */
+    public function getChatLabels()
+    {
+        $mapped = [];
+
+        WhatsAppChatLabel::query()
+            ->select(['chat_id', 'label_id'])
+            ->orderBy('chat_id')
+            ->get()
+            ->each(function ($row) use (&$mapped) {
+                $mapped[$row->chat_id] ??= [];
+                $mapped[$row->chat_id][] = (string) $row->label_id;
+            });
+
+        return response()->json($mapped);
+    }
+
+    /**
+     * Toggle a label for a chat
+     */
+    public function toggleChatLabel(Request $request)
+    {
+        $data = $request->validate([
+            'chat_id' => 'required|string',
+            'label_id' => 'required|exists:whatsapp_labels,id',
+        ]);
+
+        $existing = WhatsAppChatLabel::query()
+            ->where('chat_id', $data['chat_id'])
+            ->where('label_id', $data['label_id'])
+            ->first();
+
+        if ($existing) {
+            $existing->delete();
+        } else {
+            WhatsAppChatLabel::create([
+                'chat_id' => $data['chat_id'],
+                'label_id' => $data['label_id'],
+            ]);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * List chat priorities mapped by chat_id
+     */
+    public function getPriorities()
+    {
+        $mapped = WhatsAppChatPriority::query()
+            ->select(['chat_id', 'priority'])
+            ->get()
+            ->mapWithKeys(fn ($p) => [$p->chat_id => $p->priority]);
+
+        return response()->json($mapped);
+    }
+
+    /**
+     * Set or clear chat priority
+     */
+    public function setPriority(Request $request)
+    {
+        $data = $request->validate([
+            'chat_id' => 'required|string',
+            'priority' => 'nullable|in:maxima,alta,media,baixa',
+        ]);
+
+        if (empty($data['priority'])) {
+            WhatsAppChatPriority::query()
+                ->where('chat_id', $data['chat_id'])
+                ->delete();
+
+            return response()->json(['success' => true]);
+        }
+
+        WhatsAppChatPriority::updateOrCreate(
+            ['chat_id' => $data['chat_id']],
+            [
+                'priority' => $data['priority'],
+                'updated_by' => $request->user()?->id,
+            ]
+        );
+
+        return response()->json(['success' => true]);
     }
 
     /**
